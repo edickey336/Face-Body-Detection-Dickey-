@@ -119,7 +119,7 @@ class faceRec:
         # Load image
         # from PIL import Image
         # frame =Image.open("C:\pythonProject\DickeyDrone_Final\Faces\Eileen.jpg")
-        frame = cv2.imread("C:\pythonProject\DickeyDrone_Final\Faces\Suze.jpeg")
+        frame = cv2.imread("C:\Dickey_Drone_Final\Faces\Suze.jpeg")
 
         frame = cv2.resize(frame,(650,900))
         self.encodeFace()
