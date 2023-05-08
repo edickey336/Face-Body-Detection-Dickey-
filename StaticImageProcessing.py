@@ -121,7 +121,7 @@ class faceRec:
         # frame =Image.open("C:\pythonProject\DickeyDrone_Final\Faces\Eileen.jpg")
         frame = cv2.imread("C:\Dickey_Drone_Final\Faces\Suze.jpeg")
 
-        frame = cv2.resize(frame,(650,900))
+        frame = cv2.resize(frame,(600,900))
         self.encodeFace()
 
         if self.process_face:
