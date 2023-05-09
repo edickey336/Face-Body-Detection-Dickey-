@@ -2,13 +2,21 @@ import cv2
 import face_recognition
 import os
 
+"""Defined a class, faceRec, that contains methods for encoding faces, detecting faces, 
+and detecting bodies on static images. The encoding faces method reads images of faces from a directory and 
+encodes them as feature vectors. The detect faces method detects faces in a given image, 
+matches them with the known faces encoded earlier, and returns the image with bounding boxes 
+around the detected faces and the names of the identified people. The detect bodies method detects 
+full and upper body regions in a given image using pre-trained classifiers."""
+
 class faceRec:
-    faceLoc = []
-    faceEncode = []
-    faceNames = []
-    knownFaceNames = []
-    knownFaceEncode = []
-    process_face = True
+    # Initialize class variables
+    faceLoc = []  # list to store face locations
+    faceEncode = []  # list to store face encodings
+    faceNames = []  # list to store face names
+    knownFaceNames = []  # list to store known face names
+    knownFaceEncode = []  # list to store known face encodings
+    process_face = True  # flag to indicate if face processing is enabled
 
     def __init__(self):
         # Load body cascades

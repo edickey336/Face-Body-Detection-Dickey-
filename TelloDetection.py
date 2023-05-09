@@ -4,21 +4,31 @@ import face_recognition
 import numpy as np
 from tello_drone import TelloDrone
 import math
+"""These are import statements for various modules and libraries that are needed 
+in this script. For example, os module is used for operating system related tasks, 
+cv2 module is used for image processing, face_recognition module is used for face recognition"""
+
+"""The code is an implementation of a face recognition program that is designed 
+to track the faces of individuals by drawing bounding boxes around the faces and identifying 
+the names associated with them. It is also designed to track and follow a particular 
+target face using a Tello drone."""
 
 
 class faceRec:
-    faceLoc = []
-    faceEncode = []
-    faceNames = []
-    knownFaceNames = []
-    knownFaceEncode = []
-    process_face = True
-    target = "unknown"
+    # Initialize class variables
+    faceLoc = []  # list to store face locations
+    faceEncode = []  # list to store face encodings
+    faceNames = []  # list to store face names
+    knownFaceNames = []  # list to store known face names
+    knownFaceEncode = []  # list to store known face encodings
+    process_face = True  # flag to indicate if face processing is enabled
+    target = "unknown"  # target name to track
 
     def __init__(self):
         self.encodeFace()
 
     def encodeFace(self):
+        # Loop through images in Faces folder and encode faces
         for image in os.listdir('Faces'):
             face_image = face_recognition.load_image_file(f'Faces/{image}')
             encode = face_recognition.face_encodings(face_image)[0]
@@ -69,18 +79,24 @@ class faceRec:
                     if match[best_match]:
                         name = self.knownFaceNames[best_match]
 
+                        # Scale bounding box coordinates back to original size
                         top = int(top / 0.75)
                         right = int(right / 0.75)
                         bottom = int(bottom / 0.75)
                         left = int(left / 0.75)
 
+                        # Append name to list of detected face names
                         self.faceNames.append(f'{name}')
 
+                        # Draw bounding box and text on frame
                         cv2.rectangle(frame, (left, top), (right, bottom), (0, 0, 225), 2)
                         cv2.rectangle(frame, (left, bottom - 35), (right, bottom), (0, 0, 255), -1)
                         cv2.putText(frame, name, (left + 6, bottom - 6), cv2.FONT_HERSHEY_DUPLEX, 0.8, (255, 255, 255),
                                     1)
+
+                        # Check if detected face is the target person
                         if name == "target":
+                            # Calculate distance and move drone towards target
                             face_center_x = (left + right) / 2
                             face_center_y = (top + bottom) / 2
                             frame_center_x = smallFrame.shape[1] / 2
@@ -89,23 +105,27 @@ class faceRec:
                             y_diff = frame_center_y - face_center_y
                             distance = math.sqrt(x_diff**2 + y_diff**2)
 
+                            # Move left or right to center face
                             if abs(x_diff) > 15:
                                 if x_diff > 0:
                                     drone.move_left(15)
                                 else:
                                     drone.move_right(15)
 
+                            # Move up or down to center face
                             if abs(y_diff) > 15:
                                 if y_diff > 0:
                                     drone.move_down(15)
                                 else:
                                     drone.move_up(15)
 
+                            # Move forward or backward to adjust distance
                             if distance < 0.3:
                                 drone.move_forward(15)
                             elif distance > 0.35:
                                 drone.move_backward(15)
 
+                # Switch detection mode based on face distance from top of image
                 if detection_mode == "upper":
                     body_cascade = cv2.CascadeClassifier('haarcascade_upperbody.xml')
                     bodies = body_cascade.detectMultiScale(frame, 1.1, 5)
@@ -151,27 +171,27 @@ class faceRec:
                         target = None
 
 
-                            # Calculate face size and add to list
+                # Calculate face size and add to list
                 if len(face_locations) > 0:
                     face_location = face_locations[0]
                     face_size = (face_location[1] - face_location[3]) * (face_location[0] - face_location[2])
                     face_sizes.append(face_size)
 
-                        # Switch detection mode based on average face size
+                # Switch detection mode based on average face size
                 if len(face_locations) > 0:
-                            # Calculate the distance from the top of the image to the top of the face
+                    # Calculate the distance from the top of the image to the top of the face
                     face_distance = face_locations[0][0] / smallFrame.shape[0]
                     if face_distance < 0.4:
                             detection_mode = "full"
 
                 cv2.imshow('Face and Body Recognition', frame)
 
-                if cv2.waitKey(1) & 0xFF == ord('q'):
+                if cv2.waitKey(1) & 0xFF == ord('q'):  # exists when the user presses the q key
                     break
 
-            cv2.destroyAllWindows()
+                    cap.release()  # Releases the video capture resourcesn
+                    cv2.destroyAllWindows()  # closes all windows created by OpenCV
 
         if __name__ == '__main__':
             fr = faceRec()
-            fr.run_rec()
-
+            fr.run_rec()  # starts program
