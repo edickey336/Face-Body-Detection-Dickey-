@@ -1,9 +1,9 @@
-# Emily Dickey Face and Body recognition code for Independent study project
 import os
 import cv2
 import face_recognition
 import numpy as np
 from tello_drone import TelloDrone
+import math
 
 
 class faceRec:
@@ -13,6 +13,7 @@ class faceRec:
     knownFaceNames = []
     knownFaceEncode = []
     process_face = True
+    target = "unknown"
 
     def __init__(self):
         self.encodeFace()
@@ -27,8 +28,10 @@ class faceRec:
         print(self.knownFaceNames)
 
     def run_rec(self):
-        # Setup camera
-        cap = cv2.VideoCapture(0)
+        # Setup Tello drone
+        drone = TelloDrone()
+        drone.connect()
+        drone.stream_on()
 
         # Initialize detection mode as upper body
         detection_mode = "upper"
@@ -36,10 +39,13 @@ class faceRec:
         # Initialize face size list
         face_sizes = []
 
+        # Initialize target name and tracking distance
+        target = "Unknown"
+
         if self.process_face:
             while True:
                 # Capture frame-by-frame
-                ret, frame = cap.read()
+                frame = drone.read()
 
                 # Show the captured image
                 self.faceNames = []
@@ -74,6 +80,31 @@ class faceRec:
                         cv2.rectangle(frame, (left, bottom - 35), (right, bottom), (0, 0, 255), -1)
                         cv2.putText(frame, name, (left + 6, bottom - 6), cv2.FONT_HERSHEY_DUPLEX, 0.8, (255, 255, 255),
                                     1)
+                        if name == "target":
+                            face_center_x = (left + right) / 2
+                            face_center_y = (top + bottom) / 2
+                            frame_center_x = smallFrame.shape[1] / 2
+                            frame_center_y = smallFrame.shape[0] / 2
+                            x_diff = frame_center_x - face_center_x
+                            y_diff = frame_center_y - face_center_y
+                            distance = math.sqrt(x_diff**2 + y_diff**2)
+
+                            if abs(x_diff) > 15:
+                                if x_diff > 0:
+                                    drone.move_left(15)
+                                else:
+                                    drone.move_right(15)
+
+                            if abs(y_diff) > 15:
+                                if y_diff > 0:
+                                    drone.move_down(15)
+                                else:
+                                    drone.move_up(15)
+
+                            if distance < 0.3:
+                                drone.move_forward(15)
+                            elif distance > 0.35:
+                                drone.move_backward(15)
 
                 if detection_mode == "upper":
                     body_cascade = cv2.CascadeClassifier('haarcascade_upperbody.xml')
@@ -94,33 +125,53 @@ class faceRec:
                         if face_distance > 0.6:
                             detection_mode = "upper"
 
-
                     # Process detected bodies
                 for (x, y, w, h) in bodies:
                     cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 225), 2)
 
-                    # Calculate face size and add to list
+                    # Get the coordinates of the face detected in the full body detection
+                    full_body_face_coords = None
+                    for box in bodies:
+                        if box[4] == "face":
+                            full_body_face_coords = box[:4]
+                            break
+
+                    # Get the coordinates of the face detected in the upper body detection
+                    upper_body_face_coords = None
+                    for box in bodies:
+                        if box[4] == "face":
+                            upper_body_face_coords = box[:4]
+                            break
+
+                    # Compare the coordinates to check if it's the same face
+                    if full_body_face_coords is not None and upper_body_face_coords is not None:
+                        if full_body_face_coords == upper_body_face_coords:
+                            target = "target"
+                    else:
+                        target = None
+
+
+                            # Calculate face size and add to list
                 if len(face_locations) > 0:
                     face_location = face_locations[0]
                     face_size = (face_location[1] - face_location[3]) * (face_location[0] - face_location[2])
                     face_sizes.append(face_size)
 
-                # Switch detection mode based on average face size
+                        # Switch detection mode based on average face size
                 if len(face_locations) > 0:
-                    # Calculate the distance from the top of the image to the top of the face
+                            # Calculate the distance from the top of the image to the top of the face
                     face_distance = face_locations[0][0] / smallFrame.shape[0]
                     if face_distance < 0.4:
-                        detection_mode = "full"
+                            detection_mode = "full"
 
                 cv2.imshow('Face and Body Recognition', frame)
 
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
 
-            cap.release()
             cv2.destroyAllWindows()
 
+        if __name__ == '__main__':
+            fr = faceRec()
+            fr.run_rec()
 
-if __name__ == '__main__':
-    fr = faceRec()
-    fr.run_rec()
